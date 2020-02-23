@@ -1,5 +1,5 @@
 [gerrit]
 host=review.opencontrail.org
 port=29418
-project=tungstenfabric/tf-tripleo-puppet.git
-defaultbranch=stable/queens
+project=tungstenfabric/tf-tripleo-puppet
+defaultbranch=dgautam-test2
