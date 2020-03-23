@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "939148e0_bac6068d",
+        "filename": "manifests/profile/base/logging/contrail_logrotate_config.pp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 437
+      },
+      "writtenOn": "2020-03-23T09:04:21Z",
+      "side": 1,
+      "message": "please, move the file to already existing folder manifests/network/contrail\nrename class accordingly, e.g. class tripleo::network::contrail::logrotate_config\n(like in heat.pp and neutron.pp)\nAnd use this name in the heat template.",
+      "revId": "4ce041e153ab936b64f59b97a2976b78d0cd7b79",
+      "serverId": "c72cd27d-1743-4a55-84a4-cd13b8400c52",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "00481c32_1fd90219",
+        "filename": "manifests/profile/base/logging/contrail_logrotate_config.pp",
+        "patchSetId": 3
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 437
+      },
+      "writtenOn": "2020-03-23T09:04:21Z",
+      "side": 1,
+      "message": "config var is undefined.  you need to define it to point to the file.",
+      "range": {
+        "startLine": 36,
+        "startChar": 13,
+        "endLine": 36,
+        "endChar": 21
+      },
+      "revId": "4ce041e153ab936b64f59b97a2976b78d0cd7b79",
+      "serverId": "c72cd27d-1743-4a55-84a4-cd13b8400c52",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "07fba931_ac9ada60",
+        "filename": "manifests/profile/base/logging/contrail_logrotate_config.pp",
+        "patchSetId": 3
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 437
+      },
+      "writtenOn": "2020-03-23T09:04:21Z",
+      "side": 1,
+      "message": "this construction overwrite the whole file..\nis that possible to modify existing file with put our portion of config at the beginning (if the file exists)?",
+      "range": {
+        "startLine": 41,
+        "startChar": 6,
+        "endLine": 41,
+        "endChar": 13
+      },
+      "revId": "4ce041e153ab936b64f59b97a2976b78d0cd7b79",
+      "serverId": "c72cd27d-1743-4a55-84a4-cd13b8400c52",
+      "unresolved": true
+    }
+  ]
+}
