@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "22e11199_b8e6cdf0",
+        "filename": "manifests/network/contrail/logrotate_config.pp",
+        "patchSetId": 6
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 437
+      },
+      "writtenOn": "2020-03-23T13:49:30Z",
+      "side": 1,
+      "message": "strange construction?",
+      "range": {
+        "startLine": 9,
+        "startChar": 2,
+        "endLine": 9,
+        "endChar": 25
+      },
+      "revId": "92cb7d904856a0b2f88880b3a924c49ff117ff00",
+      "serverId": "c72cd27d-1743-4a55-84a4-cd13b8400c52",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "49efef55_2dd249fc",
+        "filename": "manifests/network/contrail/logrotate_config.pp",
+        "patchSetId": 6
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 437
+      },
+      "writtenOn": "2020-03-23T13:49:30Z",
+      "side": 1,
+      "message": "It will not work..\n\njust remove that exec and put \u0027onlyif \u003d\u003e \"test -f \u0027${config}\u0027\",\u0027 directly into\nfile {\"${new_config}\"..\n\nthen put similar onlyif but into the \u0027exec {\"add_openstack_section_to_new_config\"\u0027\njust with test -f \u0027${new_config}\u0027",
+      "range": {
+        "startLine": 44,
+        "startChar": 4,
+        "endLine": 44,
+        "endChar": 38
+      },
+      "revId": "92cb7d904856a0b2f88880b3a924c49ff117ff00",
+      "serverId": "c72cd27d-1743-4a55-84a4-cd13b8400c52",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a78ca7cb_0afd2528",
+        "filename": "manifests/network/contrail/logrotate_config.pp",
+        "patchSetId": 6
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 437
+      },
+      "writtenOn": "2020-03-23T13:49:30Z",
+      "side": 1,
+      "message": "} -\u003e\nto make it executed strongly before exec",
+      "revId": "92cb7d904856a0b2f88880b3a924c49ff117ff00",
+      "serverId": "c72cd27d-1743-4a55-84a4-cd13b8400c52",
+      "unresolved": true
+    }
+  ]
+}
