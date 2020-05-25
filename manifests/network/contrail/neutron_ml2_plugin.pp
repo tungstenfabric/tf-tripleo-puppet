@@ -16,16 +16,6 @@ class tripleo::network::contrail::neutron_ml2_plugin (
 
   File<| |> -> Ini_setting<| |>
 
-  $config_dir = '/etc/neutron/plugins/ml2'
-  $config_path = "${config_dir}/ml2_conf_opencontrail.ini"
-
-  ensure_resource('file', $config_dir, {
-    ensure => directory,
-    owner  => 'root',
-    group  => 'neutron',
-    mode   => '0640'}
-  )
-
   $plugin_config = {
     'APISERVER' => {
       'api_server_ip'   => $api_server,
@@ -41,11 +31,14 @@ class tripleo::network::contrail::neutron_ml2_plugin (
     },
   }
 
+  $config_dir = '/etc/neutron/plugins/ml2'
+  $config_path = "${config_dir}/ml2_conf_opencontrail.ini"
   create_ini_settings($plugin_config, { 'path' => $config_path })
 
-  file { '/etc/neutron/plugin.ini':
-    ensure => link,
-    target => $config_path,
-    tag    => 'neutron-config-file',
+  $config_link = '/etc/neutron/conf.d/neutron-server/ml2_conf_opencontrail.conf'
+  file { $config_link:
+    ensure  => link,
+    target  => $config_path,
+    tag     => 'neutron-config-file',
   }
 }
