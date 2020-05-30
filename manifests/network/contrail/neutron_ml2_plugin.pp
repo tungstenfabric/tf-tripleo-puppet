@@ -11,10 +11,25 @@ class tripleo::network::contrail::neutron_ml2_plugin (
   $cert_file                    = hiera('contrail::service_cert_file', ''),
   $ca_file                      = hiera('contrail::auth_ca_file', ''),
   $contrail_dm_integration      = hiera('contrail_dm_integration', false),
+  $internal_api_ssl             = hiera('contrail_internal_api_ssl', false),
+  $auth_protocol                = hiera('contrail::auth_protocol'),
+  $auth_host                    = hiera('contrail::auth_host'),
+  $auth_port                    = hiera('contrail::auth_port'),
+  $admin_user                   = hiera('contrail::admin_user'),
+  $admin_password               = hiera('contrail::admin_password'),
+  $admin_tenant_name            = hiera('contrail::admin_tenant_name'),
+  $keystone_project_domain_name = hiera('contrail::keystone_project_domain_name','Default'),
 ) {
   include ::neutron::deps
 
   File<| |> -> Ini_setting<| |>
+
+  ensure_resource('file', '/etc/contrail', {
+    ensure => directory,
+    owner  => 'root',
+    group  => 'neutron',
+    mode   => '0640'}
+  )
 
   $plugin_config = {
     'APISERVER' => {
@@ -41,4 +56,56 @@ class tripleo::network::contrail::neutron_ml2_plugin (
     target  => $config_path,
     tag     => 'neutron-config-file',
   }
+
+  $vnc_api_lib_config_common = {
+    'global' => {
+      'WEB_SERVER'  => $api_server,
+      'WEB_PORT'    => $api_port,
+    },
+    'auth' => {
+      'AUTHN_TYPE'      => 'keystone',
+      'AUTHN_TOKEN_URL' => "${auth_protocol}://${auth_host}:${auth_port}/v3/auth/tokens",
+      'AUTHN_DOMAIN'    => $keystone_project_domain_name,
+      'AUTHN_TENANT'    => $admin_tenant_name,
+      'AUTHN_USER'      => $admin_user,
+      'AUTHN_PASSWORD'  => $admin_password,
+    },
+  }
+
+  if $internal_api_ssl {
+    if $ca_file == '' or $insecure {
+      $insecure = true
+      $cafile_vnc_api = {}
+    } else {
+      $insecure = false
+      $cafile_vnc_api = {
+        'global' => {
+          'cafile' => $ca_file,
+        },
+        'auth'   => {
+          'cafile' => $ca_file,
+        },
+      }
+    }
+    $vnc_api_lib_preconfig_auth_specific = {
+      'global' => {
+        'insecure' => $insecure,
+        'certfile' => $cert_file,
+        'keyfile'  => $key_file,
+      },
+      'auth'   => {
+        'insecure'   => $insecure,
+        'certfile'   => $cert_file,
+        'keyfile'    => $key_file,
+      },
+    }
+    $vnc_api_lib_config_auth_specific = deep_merge($vnc_api_lib_preconfig_auth_specific, $cafile_vnc_api)
+  } else {
+    $vnc_api_lib_config_auth_specific = {}
+  }
+
+
+  $vnc_api_lib_config = deep_merge($vnc_api_lib_config_common, $vnc_api_lib_config_auth_specific)
+  $contrail_vnc_api_lib_config = { 'path' => '/etc/contrail/vnc_api_lib.ini' }
+  create_ini_settings($vnc_api_lib_config, $contrail_vnc_api_lib_config)
 }
