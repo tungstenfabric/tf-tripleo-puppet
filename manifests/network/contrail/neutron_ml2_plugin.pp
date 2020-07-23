@@ -11,8 +11,8 @@ class tripleo::network::contrail::neutron_ml2_plugin (
   $cert_file                      = hiera('contrail::service_cert_file', ''),
   $ca_file                        = hiera('contrail::auth_ca_file', ''),
   $contrail_dm_integration        = hiera('contrail_dm_integration', false),
-  $contrail_management_port_tags  = hiera('contrail_management_port_tags', ''),
-  $contrail_data_port_tags        = hiera('contrail_data_port_tags', ''),
+  $contrail_management_port_tags  = hiera('contrail_management_port_tags', []),
+  $contrail_data_port_tags        = hiera('contrail_data_port_tags', []),
   $internal_api_ssl               = hiera('contrail_internal_api_ssl', false),
   $auth_protocol                  = hiera('contrail::auth_protocol'),
   $auth_host                      = hiera('contrail::auth_host'),
@@ -35,8 +35,8 @@ class tripleo::network::contrail::neutron_ml2_plugin (
 
   $plugin_config = {
     'APISERVER' => {
-      'management_port_tags'  => $contrail_management_port_tags,
-      'data_port_tags'        => $contrail_data_port_tags,
+      'management_port_tags'  => join($contrail_management_port_tags, ','),
+      'data_port_tags'        => join($contrail_data_port_tags, ','),
       'api_server_ip'         => $api_server,
       'api_server_port'       => $api_port,
       'use_ssl'               => $use_ssl,
