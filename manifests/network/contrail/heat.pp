@@ -75,7 +75,7 @@ class tripleo::network::contrail::heat(
   $admin_password                    = hiera('contrail::admin_password'),
   $admin_user                        = hiera('contrail::admin_user'),
   $admin_tenant_name                 = hiera('contrail::admin_tenant_name'),
-  $api_server                        = hiera('contrail_config_vip', hiera('internal_api_virtual_ip')),
+  $api_server                        = hiera('contrail_config_ips', hiera('contrail_config_vip', hiera('internal_api_virtual_ip'))),
   $api_port                          = hiera('contrail::api_port', '8082'),
   $api_server_use_ssl                = hiera('contrail_internal_api_ssl', false),
   $heat_config_extra                 = hiera('contrail_heat_config_extra', {}),

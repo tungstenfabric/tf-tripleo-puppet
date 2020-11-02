@@ -127,7 +127,7 @@ class tripleo::network::contrail::neutron_plugin (
   $admin_password               = hiera('contrail::admin_password'),
   $admin_tenant_name            = hiera('contrail::admin_tenant_name'),
   $admin_user                   = hiera('contrail::admin_user'),
-  $api_server                   = hiera('contrail_config_vip',hiera('internal_api_virtual_ip')),
+  $api_server                   = hiera('contrail_config_ips', hiera('contrail_config_vip', hiera('internal_api_virtual_ip'))),
   $api_port                     = hiera('contrail::api_port'),
   $auth_host                    = hiera('contrail::auth_host'),
   $auth_port                    = hiera('contrail::auth_port'),
