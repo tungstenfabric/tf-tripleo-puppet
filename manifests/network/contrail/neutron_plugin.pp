@@ -256,7 +256,7 @@ class tripleo::network::contrail::neutron_plugin (
     }
     $vnc_api_lib_config_auth_specific = deep_merge($vnc_api_lib_preconfig_auth_specific, $cafile_vnc_api)
     neutron_plugin_opencontrail {
-      'APISERVER/api_server_ip':                  value => $api_server;
+      'APISERVER/api_server_ip':                  value => regsubst($api_server, ',', ' ', 'G');
       'APISERVER/api_server_port':                value => $api_port;
       'APISERVER/auth_token_url':                 value => $api_srv_auth_url;
       'APISERVER/contrail_extensions':            value => join($contrail_extensions, ',');
@@ -294,7 +294,7 @@ class tripleo::network::contrail::neutron_plugin (
   } else {
     $vnc_api_lib_config_auth_specific = {}
     neutron_plugin_opencontrail {
-      'APISERVER/api_server_ip':                  value => $api_server;
+      'APISERVER/api_server_ip':                  value => regsubst($api_server, ',', ' ', 'G');
       'APISERVER/api_server_port':                value => $api_port;
       'APISERVER/auth_token_url':                 value => $api_srv_auth_url;
       'APISERVER/contrail_extensions':            value => join($contrail_extensions, ',');
