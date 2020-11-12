@@ -89,7 +89,7 @@ class tripleo::network::contrail::heat(
   $contrail_config = {
     'clients_contrail' => {
       'api_base_url'  => '/',
-      'api_server'    => $api_server,
+      'api_server'    => regsubst($api_server, ',', ' ', 'G'),
       'api_port'      => $api_port,
       'auth_host_ip'  => $auth_host,
       'auth_protocol' => $auth_protocol,
