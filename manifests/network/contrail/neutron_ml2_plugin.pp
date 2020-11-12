@@ -37,7 +37,7 @@ class tripleo::network::contrail::neutron_ml2_plugin (
     'APISERVER' => {
       'management_port_tags'  => join($contrail_management_port_tags, ','),
       'data_port_tags'        => join($contrail_data_port_tags, ','),
-      'api_server_ip'         => $api_server,
+      'api_server_ip'         => regsubst($api_server, ',', ' ', 'G'),
       'api_server_port'       => $api_port,
       'use_ssl'               => $use_ssl,
       'insecure'              => $insecure,
