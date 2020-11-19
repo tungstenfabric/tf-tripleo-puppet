@@ -146,180 +146,184 @@ class tripleo::network::contrail::neutron_plugin (
 
   File<| |> -> Ini_setting<| |>
 
-  validate_array($contrail_extensions)
+  # neutron is executed at $step >= 3
+  if $step >= 4 {
 
-  ensure_resource('file', '/etc/neutron/plugins/opencontrail', {
-    ensure => directory,
-    owner  => 'root',
-    group  => 'neutron',
-    mode   => '0640'}
-  )
-  ensure_resource('file', '/etc/contrail', {
-    ensure => directory,
-    owner  => 'root',
-    group  => 'neutron',
-    mode   => '0640'}
-  )
+    validate_array($contrail_extensions)
 
-  file { '/etc/neutron/plugin.ini':
-    ensure  => link,
-    target  => $::neutron::params::opencontrail_config_file,
-    tag     => 'neutron-config-file',
-  } ->
-  ini_setting { 'quota_driver':
-    ensure  => present,
-    path    => '/etc/neutron/neutron.conf',
-    section => 'quotas',
-    setting => 'quota_driver',
-    value   => 'neutron_plugin_contrail.plugins.opencontrail.quota.driver.QuotaDriver',
-  }
-  if $aaa_mode == 'rbac' {
-    $api_paste_src_config_file = '/usr/share/neutron/api-paste.ini'
-    $api_paste_config_file = '/etc/neutron/api-paste.ini'
-    file { $api_paste_config_file:
-      source  => $api_paste_src_config_file,
+    ensure_resource('file', '/etc/neutron/plugins/opencontrail', {
+      ensure => directory,
+      owner  => 'root',
+      group  => 'neutron',
+      mode   => '0640'}
+    )
+    ensure_resource('file', '/etc/contrail', {
+      ensure => directory,
+      owner  => 'root',
+      group  => 'neutron',
+      mode   => '0640'}
+    )
+
+    file { '/etc/neutron/plugin.ini':
+      ensure  => link,
+      target  => $::neutron::params::opencontrail_config_file,
       tag     => 'neutron-config-file',
     } ->
-    ini_setting { 'contrail_neutron_api_paste':
+    ini_setting { 'quota_driver':
       ensure  => present,
       path    => '/etc/neutron/neutron.conf',
-      section => 'DEFAULT',
-      setting => 'api_paste_config',
-      value   => $api_paste_config_file,
-      tag     => 'neutron-config-file',
-    } ->
-    ini_setting { 'filter:user_token':
-      ensure  => present,
-      path    => $api_paste_config_file,
-      section => 'filter:user_token',
-      setting => 'paste.filter_factory',
-      value   => 'neutron_plugin_contrail.plugins.opencontrail.neutron_middleware:token_factory',
-    } ->
-    ini_setting { 'composite:neutronapi_v2_0':
-      ensure  => present,
-      path    => $api_paste_config_file,
-      section => 'composite:neutronapi_v2_0',
-      setting => 'keystone',
-      value   => 'user_token cors http_proxy_to_wsgi request_id catch_errors authtoken keystonecontext extensions neutronapiapp_v2_0',
+      section => 'quotas',
+      setting => 'quota_driver',
+      value   => 'neutron_plugin_contrail.plugins.opencontrail.quota.driver.QuotaDriver',
     }
-  }
+    if $aaa_mode == 'rbac' {
+      $api_paste_src_config_file = '/usr/share/neutron/api-paste.ini'
+      $api_paste_config_file = '/etc/neutron/api-paste.ini'
+      file { $api_paste_config_file:
+        source  => $api_paste_src_config_file,
+        tag     => 'neutron-config-file',
+      } ->
+      ini_setting { 'contrail_neutron_api_paste':
+        ensure  => present,
+        path    => '/etc/neutron/neutron.conf',
+        section => 'DEFAULT',
+        setting => 'api_paste_config',
+        value   => $api_paste_config_file,
+        tag     => 'neutron-config-file',
+      } ->
+      ini_setting { 'filter:user_token':
+        ensure  => present,
+        path    => $api_paste_config_file,
+        section => 'filter:user_token',
+        setting => 'paste.filter_factory',
+        value   => 'neutron_plugin_contrail.plugins.opencontrail.neutron_middleware:token_factory',
+      } ->
+      ini_setting { 'composite:neutronapi_v2_0':
+        ensure  => present,
+        path    => $api_paste_config_file,
+        section => 'composite:neutronapi_v2_0',
+        setting => 'keystone',
+        value   => 'user_token cors http_proxy_to_wsgi request_id catch_errors authtoken keystonecontext extensions neutronapiapp_v2_0',
+      }
+    }
 
-  exec { 'add neutron user to haproxy group':
-    command => '/usr/sbin/usermod -a -G haproxy neutron',
-  }
+    exec { 'add neutron user to haproxy group':
+      command => '/usr/sbin/usermod -a -G haproxy neutron',
+    }
 
-  $auth_url_suffix = '/v3'
-  $api_srv_auth_url_suffix = '/v3/auth/tokens'
-  $vnc_authn_url = '/v3/auth/tokens'
-  $vnc_api_lib_config_common = {
-    'global' => {
-      'WEB_SERVER'  => $api_server,
-      'WEB_PORT'    => $api_port,
-    },
-    'auth' => {
-      'AUTHN_SERVER'    => $auth_host,
-      'AUTHN_PORT'      => $auth_port,
-      'AUTHN_PROTOCOL'  => $auth_protocol,
-      'AUTHN_URL'       => $vnc_authn_url,
-      'AUTHN_TYPE'      => 'keystone',
-    },
-  }
+    $auth_url_suffix = '/v3'
+    $api_srv_auth_url_suffix = '/v3/auth/tokens'
+    $vnc_authn_url = '/v3/auth/tokens'
+    $vnc_api_lib_config_common = {
+      'global' => {
+        'WEB_SERVER'  => $api_server,
+        'WEB_PORT'    => $api_port,
+      },
+      'auth' => {
+        'AUTHN_SERVER'    => $auth_host,
+        'AUTHN_PORT'      => $auth_port,
+        'AUTHN_PROTOCOL'  => $auth_protocol,
+        'AUTHN_URL'       => $vnc_authn_url,
+        'AUTHN_TYPE'      => 'keystone',
+      },
+    }
 
-  $auth_url = join([$auth_protocol,'://',$auth_host,':',$auth_port,$auth_url_suffix])
-  $api_srv_auth_url = join([$auth_protocol,'://',$auth_host,':',$auth_port,$api_srv_auth_url_suffix])
-  if $internal_api_ssl {
-    if $auth_ca_file {
-      $insecure = false
-      $cafile_vnc_api = {
+    $auth_url = join([$auth_protocol,'://',$auth_host,':',$auth_port,$auth_url_suffix])
+    $api_srv_auth_url = join([$auth_protocol,'://',$auth_host,':',$auth_port,$api_srv_auth_url_suffix])
+    if $internal_api_ssl {
+      if $auth_ca_file {
+        $insecure = false
+        $cafile_vnc_api = {
+          'global' => {
+            'cafile' => $auth_ca_file,
+          },
+          'auth'   => {
+            'cafile' => $auth_ca_file,
+          },
+        }
+      } else {
+        $insecure = true
+        $cafile_vnc_api = {}
+      }
+      $vnc_api_lib_preconfig_auth_specific = {
         'global' => {
-          'cafile' => $auth_ca_file,
+          'insecure' => $insecure,
+          'certfile' => $cert_file,
+          'keyfile'  => $key_file,
         },
         'auth'   => {
-          'cafile' => $auth_ca_file,
+          'insecure'   => $insecure,
+          'certfile'   => $cert_file,
+          'keyfile'    => $key_file,
         },
       }
+      $vnc_api_lib_config_auth_specific = deep_merge($vnc_api_lib_preconfig_auth_specific, $cafile_vnc_api)
+      neutron_plugin_opencontrail {
+        'APISERVER/api_server_ip':                  value => regsubst($api_server, ',', ' ', 'G');
+        'APISERVER/api_server_port':                value => $api_port;
+        'APISERVER/auth_token_url':                 value => $api_srv_auth_url;
+        'APISERVER/contrail_extensions':            value => join($contrail_extensions, ',');
+        'APISERVER/use_ssl':                        value => $internal_api_ssl;
+        'APISERVER/insecure':                       value => $insecure;
+        'APISERVER/cafile':                         value => $auth_ca_file;
+        'APISERVER/certfile':                       value => $cert_file;
+        'APISERVER/keyfile':                        value => $key_file;
+        'KEYSTONE/auth_url':                        value => $auth_url;
+        'KEYSTONE/admin_user' :                     value => $admin_user;
+        'KEYSTONE/admin_tenant_name':               value => $admin_tenant_name;
+        'KEYSTONE/admin_password':                  value => $admin_password, secret =>true;
+        'KEYSTONE/cafile':                          value => $auth_ca_file;
+        'KEYSTONE/certfile':                        value => $cert_file;
+        'KEYSTONE/auth_type':                       value => $keystone_auth_type;
+        'KEYSTONE/insecure':                        value => $insecure;
+        'KEYSTONE/project_domain_name':             value => $keystone_project_domain_name;
+        'KEYSTONE/region_name':                     value => $keystone_region;
+        'KEYSTONE/user_domain_name':                value => $keystone_user_domain_name;
+        'keystone_authtoken/admin_user':            value => $admin_user;
+        'keystone_authtoken/admin_tenant':          value => $admin_tenant_name;
+        'keystone_authtoken/admin_password':        value => $admin_password, secret =>true;
+        'keystone_authtoken/auth_host':             value => $auth_host;
+        'keystone_authtoken/auth_protocol':         value => $auth_protocol;
+        'keystone_authtoken/auth_port':             value => $auth_port;
+        'keystone_authtoken/auth_uri':              value => $auth_url;
+        'keystone_authtoken/insecure':              value => $insecure;
+        'keystone_authtoken/cafile':                value => $auth_ca_file;
+        'keystone_authtoken/certfile':              value => $cert_file;
+        'keystone_authtoken/keyfile':               value => $key_file;
+        'keystone_authtoken/project_domain_name':   value => $keystone_project_domain_name;
+        'keystone_authtoken/region_name':           value => $keystone_region;
+        'keystone_authtoken/user_domain_name':      value => $keystone_user_domain_name;
+      }
     } else {
-      $insecure = true
-      $cafile_vnc_api = {}
+      $vnc_api_lib_config_auth_specific = {}
+      neutron_plugin_opencontrail {
+        'APISERVER/api_server_ip':                  value => regsubst($api_server, ',', ' ', 'G');
+        'APISERVER/api_server_port':                value => $api_port;
+        'APISERVER/auth_token_url':                 value => $api_srv_auth_url;
+        'APISERVER/contrail_extensions':            value => join($contrail_extensions, ',');
+        'KEYSTONE/auth_url':                        value => $auth_url;
+        'KEYSTONE/admin_user' :                     value => $admin_user;
+        'KEYSTONE/admin_tenant_name':               value => $admin_tenant_name;
+        'KEYSTONE/admin_password':                  value => $admin_password, secret =>true;
+        'KEYSTONE/auth_type':                       value => $keystone_auth_type;
+        'KEYSTONE/project_domain_name':             value => $keystone_project_domain_name;
+        'KEYSTONE/region_name':                     value => $keystone_region;
+        'KEYSTONE/user_domain_name':                value => $keystone_user_domain_name;
+        'keystone_authtoken/admin_user':            value => $admin_user;
+        'keystone_authtoken/admin_tenant':          value => $admin_tenant_name;
+        'keystone_authtoken/admin_password':        value => $admin_password, secret =>true;
+        'keystone_authtoken/auth_host':             value => $auth_host;
+        'keystone_authtoken/auth_uri':              value => $auth_url;
+        'keystone_authtoken/auth_protocol':         value => $auth_protocol;
+        'keystone_authtoken/auth_port':             value => $auth_port;
+        'keystone_authtoken/project_domain_name':   value => $keystone_project_domain_name;
+        'keystone_authtoken/region_name':           value => $keystone_region;
+        'keystone_authtoken/user_domain_name':      value => $keystone_user_domain_name;
+      }
     }
-    $vnc_api_lib_preconfig_auth_specific = {
-      'global' => {
-        'insecure' => $insecure,
-        'certfile' => $cert_file,
-        'keyfile'  => $key_file,
-      },
-      'auth'   => {
-        'insecure'   => $insecure,
-        'certfile'   => $cert_file,
-        'keyfile'    => $key_file,
-      },
-    }
-    $vnc_api_lib_config_auth_specific = deep_merge($vnc_api_lib_preconfig_auth_specific, $cafile_vnc_api)
-    neutron_plugin_opencontrail {
-      'APISERVER/api_server_ip':                  value => regsubst($api_server, ',', ' ', 'G');
-      'APISERVER/api_server_port':                value => $api_port;
-      'APISERVER/auth_token_url':                 value => $api_srv_auth_url;
-      'APISERVER/contrail_extensions':            value => join($contrail_extensions, ',');
-      'APISERVER/use_ssl':                        value => $internal_api_ssl;
-      'APISERVER/insecure':                       value => $insecure;
-      'APISERVER/cafile':                         value => $auth_ca_file;
-      'APISERVER/certfile':                       value => $cert_file;
-      'APISERVER/keyfile':                        value => $key_file;
-      'KEYSTONE/auth_url':                        value => $auth_url;
-      'KEYSTONE/admin_user' :                     value => $admin_user;
-      'KEYSTONE/admin_tenant_name':               value => $admin_tenant_name;
-      'KEYSTONE/admin_password':                  value => $admin_password, secret =>true;
-      'KEYSTONE/cafile':                          value => $auth_ca_file;
-      'KEYSTONE/certfile':                        value => $cert_file;
-      'KEYSTONE/auth_type':                       value => $keystone_auth_type;
-      'KEYSTONE/insecure':                        value => $insecure;
-      'KEYSTONE/project_domain_name':             value => $keystone_project_domain_name;
-      'KEYSTONE/region_name':                     value => $keystone_region;
-      'KEYSTONE/user_domain_name':                value => $keystone_user_domain_name;
-      'keystone_authtoken/admin_user':            value => $admin_user;
-      'keystone_authtoken/admin_tenant':          value => $admin_tenant_name;
-      'keystone_authtoken/admin_password':        value => $admin_password, secret =>true;
-      'keystone_authtoken/auth_host':             value => $auth_host;
-      'keystone_authtoken/auth_protocol':         value => $auth_protocol;
-      'keystone_authtoken/auth_port':             value => $auth_port;
-      'keystone_authtoken/auth_uri':              value => $auth_url;
-      'keystone_authtoken/insecure':              value => $insecure;
-      'keystone_authtoken/cafile':                value => $auth_ca_file;
-      'keystone_authtoken/certfile':              value => $cert_file;
-      'keystone_authtoken/keyfile':               value => $key_file;
-      'keystone_authtoken/project_domain_name':   value => $keystone_project_domain_name;
-      'keystone_authtoken/region_name':           value => $keystone_region;
-      'keystone_authtoken/user_domain_name':      value => $keystone_user_domain_name;
-    }
-  } else {
-    $vnc_api_lib_config_auth_specific = {}
-    neutron_plugin_opencontrail {
-      'APISERVER/api_server_ip':                  value => regsubst($api_server, ',', ' ', 'G');
-      'APISERVER/api_server_port':                value => $api_port;
-      'APISERVER/auth_token_url':                 value => $api_srv_auth_url;
-      'APISERVER/contrail_extensions':            value => join($contrail_extensions, ',');
-      'KEYSTONE/auth_url':                        value => $auth_url;
-      'KEYSTONE/admin_user' :                     value => $admin_user;
-      'KEYSTONE/admin_tenant_name':               value => $admin_tenant_name;
-      'KEYSTONE/admin_password':                  value => $admin_password, secret =>true;
-      'KEYSTONE/auth_type':                       value => $keystone_auth_type;
-      'KEYSTONE/project_domain_name':             value => $keystone_project_domain_name;
-      'KEYSTONE/region_name':                     value => $keystone_region;
-      'KEYSTONE/user_domain_name':                value => $keystone_user_domain_name;
-      'keystone_authtoken/admin_user':            value => $admin_user;
-      'keystone_authtoken/admin_tenant':          value => $admin_tenant_name;
-      'keystone_authtoken/admin_password':        value => $admin_password, secret =>true;
-      'keystone_authtoken/auth_host':             value => $auth_host;
-      'keystone_authtoken/auth_uri':              value => $auth_url;
-      'keystone_authtoken/auth_protocol':         value => $auth_protocol;
-      'keystone_authtoken/auth_port':             value => $auth_port;
-      'keystone_authtoken/project_domain_name':   value => $keystone_project_domain_name;
-      'keystone_authtoken/region_name':           value => $keystone_region;
-      'keystone_authtoken/user_domain_name':      value => $keystone_user_domain_name;
-    }
-  }
 
-  $vnc_api_lib_config = deep_merge($vnc_api_lib_config_common, $vnc_api_lib_config_auth_specific)
-  $contrail_vnc_api_lib_config = { 'path' => '/etc/contrail/vnc_api_lib.ini' }
-  create_ini_settings($vnc_api_lib_config, $contrail_vnc_api_lib_config)
+    $vnc_api_lib_config = deep_merge($vnc_api_lib_config_common, $vnc_api_lib_config_auth_specific)
+    $contrail_vnc_api_lib_config = { 'path' => '/etc/contrail/vnc_api_lib.ini' }
+    create_ini_settings($vnc_api_lib_config, $contrail_vnc_api_lib_config)
+  }
 }
