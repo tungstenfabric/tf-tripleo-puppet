@@ -43,11 +43,14 @@ class tripleo::certmonger::contrail (
   $hostname,
   $service_certificate,
   $service_key,
-  $certmonger_ca = hiera('contrail_certmonger_ca', 'IPA'),
-  $dnsnames      = $hostname,
-  $container_cli = hiera('container_cli', docker),
-  $postsave_cmd  = "sudo ${container_cli} ps -q --filter=name=\"contrail*\" | xargs -i sudo ${container_cli} restart {}",
-  $principal     = undef,
+  $certmonger_ca    = hiera('contrail_certmonger_ca', 'IPA'),
+  $dnsnames         = $hostname,
+  $container_cli    = hiera('container_cli', docker),
+  $presave_cmd      = "/usr/bin/certmonger-contrail-presave.sh",
+  $postsave_cmd     = "/usr/bin/certmonger-contrail-postsave.sh",
+  $principal        = undef,
+  $contrail_user    = 'root',
+  $contrail_group   = 1999,
 ) {
   include ::certmonger
   certmonger_certificate { 'contrail' :
@@ -57,10 +60,23 @@ class tripleo::certmonger::contrail (
     hostname     => $hostname,
     dnsname      => $dnsnames,
     principal    => $principal,
+    presave_cmd  => $presave_cmd,
     postsave_cmd => $postsave_cmd,
     ca           => $certmonger_ca,
     wait         => true,
     tag          => 'contrail-cert',
     require      => Class['::certmonger'],
+  } ->
+  file { $service_certificate :
+    require => Certmonger_certificate['contrail'],
+    owner   => $contrail_user,
+    group   => $contrail_group,
+    mode    => '0644',
+  } ->
+  file { $service_key :
+    require => Certmonger_certificate['contrail'],
+    owner   => $contrail_user,
+    group   => $contrail_group,
+    mode    => '0640',
   }
 }
