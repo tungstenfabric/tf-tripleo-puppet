@@ -46,7 +46,8 @@ class tripleo::certmonger::contrail (
   $certmonger_ca = hiera('contrail_certmonger_ca', 'IPA'),
   $dnsnames      = $hostname,
   $container_cli = hiera('container_cli', docker),
-  $postsave_cmd  = "sudo ${container_cli} ps -q --filter=name=\"contrail*\" | xargs -i sudo ${container_cli} restart {}",
+  $presave_cmd   = "/usr/bin/certmonger-contrail-presave.sh",
+  $postsave_cmd  = "/usr/bin/certmonger-contrail-postsave.sh",
   $principal     = undef,
 ) {
   include ::certmonger
