@@ -80,29 +80,34 @@ class tripleo::network::contrail::heat(
   $api_server_use_ssl                = hiera('contrail_internal_api_ssl', false),
   $heat_config_extra                 = hiera('contrail_heat_config_extra', {}),
 ) {
-  if $api_server_use_ssl {
-    $use_ssl = 'True'
-  } else {
-    $use_ssl = 'False'
+
+  # heat is executed at $step >= 3
+  if $step >= 3 {
+
+    if $api_server_use_ssl {
+      $use_ssl = 'True'
+    } else {
+      $use_ssl = 'False'
+    }
+
+    $contrail_config = {
+      'clients_contrail' => {
+        'api_base_url'  => '/',
+        'api_server'    => regsubst($api_server, ',', ' ', 'G'),
+        'api_port'      => $api_port,
+        'auth_host_ip'  => $auth_host,
+        'auth_protocol' => $auth_protocol,
+        'user'          => $admin_user,
+        'password'      => $admin_password,
+        'tenant'        => $admin_tenant_name,
+        'use_ssl'       => $use_ssl,
+      },
+    }
+
+    $heat_config = deep_merge($heat_config_extra, $contrail_config)
+
+    validate_hash($heat_config)
+    $contrail_heat_config = { 'path' => '/etc/heat/heat.conf' }
+    create_ini_settings($heat_config, $contrail_heat_config)
   }
-
-  $contrail_config = {
-    'clients_contrail' => {
-      'api_base_url'  => '/',
-      'api_server'    => regsubst($api_server, ',', ' ', 'G'),
-      'api_port'      => $api_port,
-      'auth_host_ip'  => $auth_host,
-      'auth_protocol' => $auth_protocol,
-      'user'          => $admin_user,
-      'password'      => $admin_password,
-      'tenant'        => $admin_tenant_name,
-      'use_ssl'       => $use_ssl,
-    },
-  }
-
-  $heat_config = deep_merge($heat_config_extra, $contrail_config)
-
-  validate_hash($heat_config)
-  $contrail_heat_config = { 'path' => '/etc/heat/heat.conf' }
-  create_ini_settings($heat_config, $contrail_heat_config)
 }

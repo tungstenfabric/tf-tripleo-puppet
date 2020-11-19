@@ -26,90 +26,94 @@ class tripleo::network::contrail::neutron_ml2_plugin (
 
   File<| |> -> Ini_setting<| |>
 
-  ensure_resource('file', '/etc/contrail', {
-    ensure => directory,
-    owner  => 'root',
-    group  => 'neutron',
-    mode   => '0640'}
-  )
+  # neutron is executed at $step >= 3
+  if $step >= 4 {
 
-  $plugin_config = {
-    'APISERVER' => {
-      'management_port_tags'  => join($contrail_management_port_tags, ','),
-      'data_port_tags'        => join($contrail_data_port_tags, ','),
-      'api_server_ip'         => regsubst($api_server, ',', ' ', 'G'),
-      'api_server_port'       => $api_port,
-      'use_ssl'               => $use_ssl,
-      'insecure'              => $insecure,
-      'certfile'              => $key_file,
-      'keyfile'               => $cert_file,
-      'cafile'                => $ca_file,
-    },
-    'DM_INTEGRATION' => {
-      'enabled' => $contrail_dm_integration,
-    },
-  }
+    ensure_resource('file', '/etc/contrail', {
+      ensure => directory,
+      owner  => 'root',
+      group  => 'neutron',
+      mode   => '0640'}
+    )
 
-  $config_dir = '/etc/neutron/plugins/ml2'
-  $config_path = "${config_dir}/ml2_conf_opencontrail.ini"
-  create_ini_settings($plugin_config, { 'path' => $config_path })
+    $plugin_config = {
+      'APISERVER' => {
+        'management_port_tags'  => join($contrail_management_port_tags, ','),
+        'data_port_tags'        => join($contrail_data_port_tags, ','),
+        'api_server_ip'         => regsubst($api_server, ',', ' ', 'G'),
+        'api_server_port'       => $api_port,
+        'use_ssl'               => $use_ssl,
+        'insecure'              => $insecure,
+        'certfile'              => $key_file,
+        'keyfile'               => $cert_file,
+        'cafile'                => $ca_file,
+      },
+      'DM_INTEGRATION' => {
+        'enabled' => $contrail_dm_integration,
+      },
+    }
 
-  $config_link = '/etc/neutron/conf.d/neutron-server/ml2_conf_opencontrail.conf'
-  file { $config_link:
-    ensure  => link,
-    target  => $config_path,
-    tag     => 'neutron-config-file',
-  }
+    $config_dir = '/etc/neutron/plugins/ml2'
+    $config_path = "${config_dir}/ml2_conf_opencontrail.ini"
+    create_ini_settings($plugin_config, { 'path' => $config_path })
 
-  $vnc_api_lib_config_common = {
-    'global' => {
-      'WEB_SERVER'  => $api_server,
-      'WEB_PORT'    => $api_port,
-    },
-    'auth' => {
-      'AUTHN_TYPE'      => 'keystone',
-      'AUTHN_TOKEN_URL' => "${auth_protocol}://${auth_host}:${auth_port}/v3/auth/tokens",
-      'AUTHN_DOMAIN'    => $keystone_project_domain_name,
-      'AUTHN_TENANT'    => $admin_tenant_name,
-      'AUTHN_USER'      => $admin_user,
-      'AUTHN_PASSWORD'  => $admin_password,
-    },
-  }
+    $config_link = '/etc/neutron/conf.d/neutron-server/ml2_conf_opencontrail.conf'
+    file { $config_link:
+      ensure  => link,
+      target  => $config_path,
+      tag     => 'neutron-config-file',
+    }
 
-  if $internal_api_ssl {
-    if $ca_file == '' or $insecure {
-      $insecure = true
-      $cafile_vnc_api = {}
-    } else {
-      $insecure = false
-      $cafile_vnc_api = {
+    $vnc_api_lib_config_common = {
+      'global' => {
+        'WEB_SERVER'  => $api_server,
+        'WEB_PORT'    => $api_port,
+      },
+      'auth' => {
+        'AUTHN_TYPE'      => 'keystone',
+        'AUTHN_TOKEN_URL' => "${auth_protocol}://${auth_host}:${auth_port}/v3/auth/tokens",
+        'AUTHN_DOMAIN'    => $keystone_project_domain_name,
+        'AUTHN_TENANT'    => $admin_tenant_name,
+        'AUTHN_USER'      => $admin_user,
+        'AUTHN_PASSWORD'  => $admin_password,
+      },
+    }
+
+    if $internal_api_ssl {
+      if $ca_file == '' or $insecure {
+        $insecure = true
+        $cafile_vnc_api = {}
+      } else {
+        $insecure = false
+        $cafile_vnc_api = {
+          'global' => {
+            'cafile' => $ca_file,
+          },
+          'auth'   => {
+            'cafile' => $ca_file,
+          },
+        }
+      }
+      $vnc_api_lib_preconfig_auth_specific = {
         'global' => {
-          'cafile' => $ca_file,
+          'insecure' => $insecure,
+          'certfile' => $cert_file,
+          'keyfile'  => $key_file,
         },
         'auth'   => {
-          'cafile' => $ca_file,
+          'insecure'   => $insecure,
+          'certfile'   => $cert_file,
+          'keyfile'    => $key_file,
         },
       }
+      $vnc_api_lib_config_auth_specific = deep_merge($vnc_api_lib_preconfig_auth_specific, $cafile_vnc_api)
+    } else {
+      $vnc_api_lib_config_auth_specific = {}
     }
-    $vnc_api_lib_preconfig_auth_specific = {
-      'global' => {
-        'insecure' => $insecure,
-        'certfile' => $cert_file,
-        'keyfile'  => $key_file,
-      },
-      'auth'   => {
-        'insecure'   => $insecure,
-        'certfile'   => $cert_file,
-        'keyfile'    => $key_file,
-      },
-    }
-    $vnc_api_lib_config_auth_specific = deep_merge($vnc_api_lib_preconfig_auth_specific, $cafile_vnc_api)
-  } else {
-    $vnc_api_lib_config_auth_specific = {}
+
+
+    $vnc_api_lib_config = deep_merge($vnc_api_lib_config_common, $vnc_api_lib_config_auth_specific)
+    $contrail_vnc_api_lib_config = { 'path' => '/etc/contrail/vnc_api_lib.ini' }
+    create_ini_settings($vnc_api_lib_config, $contrail_vnc_api_lib_config)
   }
-
-
-  $vnc_api_lib_config = deep_merge($vnc_api_lib_config_common, $vnc_api_lib_config_auth_specific)
-  $contrail_vnc_api_lib_config = { 'path' => '/etc/contrail/vnc_api_lib.ini' }
-  create_ini_settings($vnc_api_lib_config, $contrail_vnc_api_lib_config)
 }

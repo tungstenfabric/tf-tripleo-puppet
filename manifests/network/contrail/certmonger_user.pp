@@ -25,10 +25,27 @@
 #
 
 class tripleo::network::contrail::certmonger_user (
+  $step                         = Integer(hiera('step')),
   $contrail_certificates_specs  = hiera('contrail_certificates_specs', {}),
 ) {
-  unless empty($contrail_certificates_specs) {
-    include ::tripleo::certmonger::contrail_dirs
-    ensure_resource('class', 'tripleo::certmonger::contrail', $contrail_certificates_specs)
+  # certmonger user is executed at step == 1
+  if $step == 1  {
+    ensure_resource('file', '/usr/bin/certmonger-contrail-presave.sh', {
+      source  => 'puppet:///modules/tripleo/contrail/certmonger-contrail-presave.sh',
+      mode    => '0700',
+      seltype => 'bin_t',
+      notify  => Service['certmonger']
+    })
+    ensure_resource('file', '/usr/bin/certmonger-contrail-postsave.sh', {
+      source  => 'puppet:///modules/tripleo/contrail/certmonger-contrail-postsave.sh',
+      mode    => '0700',
+      seltype => 'bin_t',
+      notify  => Service['certmonger']
+    })
+
+    unless empty($contrail_certificates_specs) {
+      include ::tripleo::certmonger::contrail_dirs
+      ensure_resource('class', 'tripleo::certmonger::contrail', $contrail_certificates_specs)
+    }
   }
 }
