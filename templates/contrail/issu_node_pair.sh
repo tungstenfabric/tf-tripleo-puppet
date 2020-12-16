@@ -29,8 +29,12 @@ analyticsdb_container_id=${analyticsdb_container_id:-`sudo docker ps | awk '/ana
 issu_api_port=${issu_api_port:-8082}
 old_api_server_port=${old_api_server_port:-8082}
 working_dir=${working_dir:-'/tmp/contrail_issu'}
-old_analytics_servers_list_space=${old_analytics_servers_list_space:-"$old_control_servers_list_space"}
+old_config_servers_list_space=${old_config_servers_list_space:-"$old_control_servers_list_space"}
+old_analytics_servers_list_space=${old_analytics_servers_list_space:-"$old_config_servers_list_space"}
 old_analyticsdb_servers_list_space=${old_analyticsdb_servers_list_space:-"$old_analytics_servers_list_space"}
+
+OLD_NODES_NAMES=${OLD_NODES_NAMES:-'auto'}
+
 
 oper=${1:-'add'}
 step=${2:-'pair_with_old'}
@@ -52,7 +56,16 @@ ssh_opts='-i ~/.ssh/issu_id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFil
 
 function resolve_name() {
   local ip=$1
+  local alg=${2:-$OLD_NODES_NAMES}
   local ssh_cmd="ssh $ssh_opts heat-admin@${ip}"
+  if [[ "$alg" == 'short' ]] ; then
+    $ssh_cmd uname -n
+    return
+  fi
+  if [[ "$alg" == 'fqdn' ]] ; then
+    resolveip -s $ip
+    return
+  fi
   local id=$($ssh_cmd sudo docker ps -a | awk '/contrail-node-init/{print($NF)}' | head -n 1)
   [ -z "$id" ] && id="contrail-node-init"
   local release=$($ssh_cmd sudo docker inspect $id | jq '.[].Config.Labels.release')
@@ -62,6 +75,10 @@ function resolve_name() {
   else
     resolveip -s $ip
   fi
+}
+
+function resolve_name_issu() {
+  resolve_name $1 'fqdn'
 }
 
 function provision() {
@@ -158,7 +175,7 @@ done
 
 #Pair/unpair issu control nodes in with cluster
 for ip in $issu_control_ips_space ; do
-  name=$(resolve_name $ip)
+  name=$(resolve_name_issu $ip)
   provision_control $ip $name $old_api_server_ip $old_api_server_port|| {
     echo "ERROR: failed to provision ISSU control node $ip in old cluster $old_api_server_ip:$old_api_server_port"
     exit -1
@@ -167,7 +184,7 @@ done
 
 if [[ "$oper" == 'del' && "$step" == 'pair_with_old' ]] ; then
   # remove from iss node old config, analytics & analytics db nodes registered by issu_sync
-  for ip in $old_control_servers_list_space ; do
+  for ip in $old_config_servers_list_space ; do
     name=$(resolve_name $ip)
     provision $ip $name $issu_api_server_ip $issu_api_port provision_config_node.py $config_container_id
   done
@@ -195,7 +212,7 @@ EOF
 
   # remove ISSU node components from the cluster (they were synced by revers issu sync)
   for ip in $issu_ips_list_space ; do
-    name=$(resolve_name $ip)
+    name=$(resolve_name_issu $ip)
     # config
     provision $ip $name $old_api_server_ip $old_api_server_port provision_config_node.py $config_container_id
     # analytics
