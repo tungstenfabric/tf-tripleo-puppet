@@ -89,11 +89,16 @@ class tripleo::network::contrail::heat(
     } else {
       $use_ssl = 'False'
     }
+    if is_array($api_server) {
+      $api_server_str = join($api_server, ',')
+    } else {
+      $api_server_str = $api_server
+    }
 
     $contrail_config = {
       'clients_contrail' => {
         'api_base_url'  => '/',
-        'api_server'    => regsubst($api_server, ',', ' ', 'G'),
+        'api_server'    => regsubst($api_server_str, ',', ' ', 'G'),
         'api_port'      => $api_port,
         'auth_host_ip'  => $auth_host,
         'auth_protocol' => $auth_protocol,

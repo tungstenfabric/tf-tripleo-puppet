@@ -140,11 +140,18 @@ class tripleo::network::contrail::neutron_plugin (
   $keystone_project_domain_name = hiera('contrail::keystone_project_domain_name','Default'),
   $keystone_region              = hiera('contrail::keystone_region','regionOne'),
   $keystone_user_domain_name    = hiera('contrail::keystone_user_domain_name','Default'),
+  $keystone_auth_ca_file        = hiera('contrail::keystone_auth_ca_file', undef),
 ) {
   include ::neutron::deps
   include ::neutron::params
 
   File<| |> -> Ini_setting<| |>
+
+  if is_array($api_server) {
+    $api_server_str = join($api_server, ',')
+  } else {
+    $api_server_str = $api_server
+  }
 
   # neutron is executed at $step >= 3
   if $step >= 4 {
@@ -216,7 +223,7 @@ class tripleo::network::contrail::neutron_plugin (
     $vnc_authn_url = '/v3/auth/tokens'
     $vnc_api_lib_config_common = {
       'global' => {
-        'WEB_SERVER'  => $api_server,
+        'WEB_SERVER'  => $api_server_str,
         'WEB_PORT'    => $api_port,
       },
       'auth' => {
@@ -237,14 +244,23 @@ class tripleo::network::contrail::neutron_plugin (
           'global' => {
             'cafile' => $auth_ca_file,
           },
-          'auth'   => {
-            'cafile' => $auth_ca_file,
-          },
         }
       } else {
         $insecure = true
         $cafile_vnc_api = {}
       }
+      if $keystone_auth_ca_file {
+        $keystone_insecure = false
+        $keystone_vnc_api = {
+          'auth'   => {
+            'cafile' => $keystone_auth_ca_file,
+          },
+        }
+      } else {
+        $keystone_insecure = true
+        $keystone_vnc_api = {}
+      }
+
       $vnc_api_lib_preconfig_auth_specific = {
         'global' => {
           'insecure' => $insecure,
@@ -252,14 +268,17 @@ class tripleo::network::contrail::neutron_plugin (
           'keyfile'  => $key_file,
         },
         'auth'   => {
-          'insecure'   => $insecure,
+          'insecure'   => $keystone_insecure,
           'certfile'   => $cert_file,
           'keyfile'    => $key_file,
         },
       }
-      $vnc_api_lib_config_auth_specific = deep_merge($vnc_api_lib_preconfig_auth_specific, $cafile_vnc_api)
+      $vnc_api_lib_config_auth_specific = deep_merge(
+          $vnc_api_lib_preconfig_auth_specific,
+          deep_merge($cafile_vnc_api, $keystone_vnc_api)
+      )
       neutron_plugin_opencontrail {
-        'APISERVER/api_server_ip':                  value => regsubst($api_server, ',', ' ', 'G');
+        'APISERVER/api_server_ip':                  value => regsubst($api_server_str, ',', ' ', 'G');
         'APISERVER/api_server_port':                value => $api_port;
         'APISERVER/auth_token_url':                 value => $api_srv_auth_url;
         'APISERVER/contrail_extensions':            value => join($contrail_extensions, ',');
@@ -272,10 +291,10 @@ class tripleo::network::contrail::neutron_plugin (
         'KEYSTONE/admin_user' :                     value => $admin_user;
         'KEYSTONE/admin_tenant_name':               value => $admin_tenant_name;
         'KEYSTONE/admin_password':                  value => $admin_password, secret =>true;
-        'KEYSTONE/cafile':                          value => $auth_ca_file;
+        'KEYSTONE/cafile':                          value => $keystone_auth_ca_file;
         'KEYSTONE/certfile':                        value => $cert_file;
         'KEYSTONE/auth_type':                       value => $keystone_auth_type;
-        'KEYSTONE/insecure':                        value => $insecure;
+        'KEYSTONE/insecure':                        value => $keystone_insecure;
         'KEYSTONE/project_domain_name':             value => $keystone_project_domain_name;
         'KEYSTONE/region_name':                     value => $keystone_region;
         'KEYSTONE/user_domain_name':                value => $keystone_user_domain_name;
@@ -286,8 +305,8 @@ class tripleo::network::contrail::neutron_plugin (
         'keystone_authtoken/auth_protocol':         value => $auth_protocol;
         'keystone_authtoken/auth_port':             value => $auth_port;
         'keystone_authtoken/auth_uri':              value => $auth_url;
-        'keystone_authtoken/insecure':              value => $insecure;
-        'keystone_authtoken/cafile':                value => $auth_ca_file;
+        'keystone_authtoken/insecure':              value => $keystone_insecure;
+        'keystone_authtoken/cafile':                value => $keystone_auth_ca_file;
         'keystone_authtoken/certfile':              value => $cert_file;
         'keystone_authtoken/keyfile':               value => $key_file;
         'keystone_authtoken/project_domain_name':   value => $keystone_project_domain_name;
@@ -297,7 +316,7 @@ class tripleo::network::contrail::neutron_plugin (
     } else {
       $vnc_api_lib_config_auth_specific = {}
       neutron_plugin_opencontrail {
-        'APISERVER/api_server_ip':                  value => regsubst($api_server, ',', ' ', 'G');
+        'APISERVER/api_server_ip':                  value => regsubst($api_server_str, ',', ' ', 'G');
         'APISERVER/api_server_port':                value => $api_port;
         'APISERVER/auth_token_url':                 value => $api_srv_auth_url;
         'APISERVER/contrail_extensions':            value => join($contrail_extensions, ',');
