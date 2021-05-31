@@ -47,10 +47,10 @@
 #  Boolean value.
 #  Defaults to hiera('contrail_ssl_enabled', false)
 #
-# [*auth_ca_file*]
-#  (optional) auth ca file name
+# [*ca_file*]
+#  (optional) contrail ca file name
 #  String value.
-#  Defaults to hiera('contrail::auth_ca_file',false)
+#  Defaults to hiera('contrail::ca_file',false)
 #
 # [*cert_file*]
 #  (optional) cert file name
@@ -132,7 +132,7 @@ class tripleo::network::contrail::neutron_plugin (
   $auth_host                    = hiera('contrail::auth_host'),
   $auth_port                    = hiera('contrail::auth_port'),
   $auth_protocol                = hiera('contrail::auth_protocol'),
-  $auth_ca_file                 = hiera('contrail::auth_ca_file', undef),
+  $ca_file                      = hiera('contrail::ca_file', undef),
   $internal_api_ssl             = hiera('contrail_internal_api_ssl', false),
   $key_file                     = hiera('contrail::service_key_file', undef),
   $cert_file                    = hiera('contrail::service_cert_file', undef),
@@ -238,11 +238,11 @@ class tripleo::network::contrail::neutron_plugin (
     $auth_url = join([$auth_protocol,'://',$auth_host,':',$auth_port,$auth_url_suffix])
     $api_srv_auth_url = join([$auth_protocol,'://',$auth_host,':',$auth_port,$api_srv_auth_url_suffix])
     if $internal_api_ssl {
-      if $auth_ca_file {
+      if $ca_file {
         $insecure = false
         $cafile_vnc_api = {
           'global' => {
-            'cafile' => $auth_ca_file,
+            'cafile' => $ca_file,
           },
         }
       } else {
@@ -284,7 +284,7 @@ class tripleo::network::contrail::neutron_plugin (
         'APISERVER/contrail_extensions':            value => join($contrail_extensions, ',');
         'APISERVER/use_ssl':                        value => $internal_api_ssl;
         'APISERVER/insecure':                       value => $insecure;
-        'APISERVER/cafile':                         value => $auth_ca_file;
+        'APISERVER/cafile':                         value => $ca_file;
         'APISERVER/certfile':                       value => $cert_file;
         'APISERVER/keyfile':                        value => $key_file;
         'KEYSTONE/auth_url':                        value => $auth_url;
