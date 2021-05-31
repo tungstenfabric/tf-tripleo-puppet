@@ -9,7 +9,7 @@ class tripleo::network::contrail::neutron_ml2_plugin (
   $insecure                       = hiera('contrail_ssl_insecure', true),
   $key_file                       = hiera('contrail::service_key_file', ''),
   $cert_file                      = hiera('contrail::service_cert_file', ''),
-  $ca_file                        = hiera('contrail::auth_ca_file', ''),
+  $ca_file                        = hiera('contrail::ca_file', ''),
   $contrail_dm_integration        = hiera('contrail_dm_integration', false),
   $contrail_management_port_tags  = hiera('contrail_management_port_tags', []),
   $contrail_data_port_tags        = hiera('contrail_data_port_tags', []),
