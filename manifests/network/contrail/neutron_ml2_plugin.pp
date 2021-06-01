@@ -29,7 +29,7 @@ class tripleo::network::contrail::neutron_ml2_plugin (
   if is_array($api_server) {
     $api_server_str = join($api_server, ',')
   } else {
-    $api_server_str = $api_server
+    $api_server_str = regsubst($api_server, '[\[\] \"\']', '', 'G')
   }
 
   # neutron is executed at $step >= 3

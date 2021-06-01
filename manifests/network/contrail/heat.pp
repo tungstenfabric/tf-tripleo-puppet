@@ -92,7 +92,7 @@ class tripleo::network::contrail::heat(
     if is_array($api_server) {
       $api_server_str = join($api_server, ',')
     } else {
-      $api_server_str = $api_server
+      $api_server_str = regsubst($api_server, '[\[\] \"\']', '', 'G')
     }
 
     $contrail_config = {
