@@ -37,7 +37,7 @@ type="dpdk"
 dpdk_ini='/etc/contrail.org/supervisord_vrouter_files/contrail-vrouter-dpdk.ini'
 bind_int=$(get_cfg_value physical_interface_address)
 if [[ "$bind_int" == '0000:00:00.0' ]] ; then
-  bind_int=$(sudo grep -o "slave=[^ \"\']\+" $dpdk_ini | awk '{print($NF)}' | cut -d '=' -f 2)
+  bind_int=$(sudo grep -o "slave=[^ \"\']\+" $dpdk_ini | awk '{print($NF)}' | sed -e "s/slave=//g")
 fi
 [[ -n "$bind_int" ]] && create_ffu_env='true'
 dpdk_driver=$(get_cfg_value physical_uio_driver)
